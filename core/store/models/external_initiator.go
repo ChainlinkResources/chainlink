@@ -12,6 +12,24 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+// JobRunNotice is sent to the External Initiator when JobRuns are created.
+type JobRunNotice struct {
+	JobID  *ID    `json:"jobId"`
+	Type   string `json:"type"`
+	Params JSON   `json:"params,omitempty"`
+}
+
+// NewJobRunNotice returns a new JobRun.
+func NewJobRunNotice(initiator Initiator, jr JobRun) *JobRunNotice {
+	return &JobRunNotice{
+		JobID: jr.ID,
+		Type:  initiator.Type,
+		// TODO(felder-cl): Obtain 'params' form Initaitor when implemented
+		//	Params: JSON{},
+	}
+
+}
+
 // ExternalInitiatorRequest is the incoming record used to create an ExternalInitiator.
 type ExternalInitiatorRequest struct {
 	Name string `json:"name"`

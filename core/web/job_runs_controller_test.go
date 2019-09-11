@@ -181,10 +181,13 @@ func TestJobRunsController_Create_ExternalInitiator_Success(t *testing.T) {
 	app.Start()
 	defer cleanup()
 
+	eiMockServer, assertCalled := cltest.NewHTTPMockServer(t, http.StatusOK, "POST", "")
+	defer assertCalled()
+
 	eia := models.NewExternalInitiatorAuthentication()
 	eir := &models.ExternalInitiatorRequest{
 		Name: "bitcoin",
-		URL:  cltest.WebURL(t, "http://localhost:8888"),
+		URL:  cltest.WebURL(t, eiMockServer.URL),
 	}
 	ei, err := models.NewExternalInitiator(eia, eir)
 	require.NoError(t, err)

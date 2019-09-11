@@ -1,6 +1,8 @@
 package web
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -61,6 +63,8 @@ func (jrc *JobRunsController) Create(c *gin.Context) {
 		jsonAPIError(c, http.StatusInternalServerError, err)
 	} else if jr, err := services.ExecuteJob(j, *initiator, models.RunResult{Data: data}, nil, jrc.App.GetStore()); err != nil {
 		jsonAPIError(c, http.StatusInternalServerError, err)
+	} else if err := notifyExternalInitiator(c, *initiator, *jr); err != nil {
+		jsonAPIError(c, http.StatusInternalServerError, err)
 	} else {
 		jsonAPIResponse(c, presenters.JobRun{JobRun: *jr}, "job run")
 	}
@@ -90,6 +94,28 @@ func getRunData(c *gin.Context) (models.JSON, error) {
 		return models.JSON{}, err
 	}
 	return models.ParseJSON(b)
+}
+
+// notifyExternalInitiator sends a POST notification to the External Initiator
+// responsible for initiating the JobRun.
+func notifyExternalInitiator(c *gin.Context, initiator models.Initiator, jr models.JobRun) error {
+	ei, ok := authenticatedEI(c)
+	if !ok {
+		return nil
+	}
+	notification := models.NewJobRunNotice(initiator, jr)
+	buf, err := json.Marshal(notification)
+	if err != nil {
+		return err
+	}
+	resp, err := http.Post(ei.URL.String(), "application/json", bytes.NewBuffer(buf))
+	if err != nil {
+		return errors.Wrap(err, "could not notify '%s' (%s)")
+	}
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		return fmt.Errorf(" notify '%s' (%s) received bad response '%s'", ei.Name, ei.URL, resp.Status)
+	}
+	return nil
 }
 
 // Show returns the details of a JobRun.

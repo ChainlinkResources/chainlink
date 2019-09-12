@@ -6,7 +6,7 @@ import { compare as comparePassword } from '../../services/password'
 
 const router = Router()
 
-router.post('/admin/login', async (req: Request, res: Response) => {
+router.post('/login', async (req: Request, res: Response) => {
   const username: string = req.header('Explorer-Admin-Username')
   const password: string = req.header('Explorer-Admin-Password')
   const db: Connection = await getDb()

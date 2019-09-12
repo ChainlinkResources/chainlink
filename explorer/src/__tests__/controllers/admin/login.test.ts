@@ -12,7 +12,7 @@ const PASSWORD: string = 'validpassword'
 
 const controller = express()
 controller.use(express.json())
-controller.use('/api/v1', adminLogin)
+controller.use('/api/v1/admin', adminLogin)
 
 let server: http.Server
 let db: Connection

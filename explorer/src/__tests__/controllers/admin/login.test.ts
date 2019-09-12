@@ -38,7 +38,7 @@ describe('#index', () => {
 
   beforeEach(async () => {
     clearDb()
-    await createAdmin(db, 'myadmin', 'validpassword')
+    await createAdmin(db, USERNAME, PASSWORD)
   })
 
   it('returns a 200 with valid credentials', (done: DoneCallback) => {

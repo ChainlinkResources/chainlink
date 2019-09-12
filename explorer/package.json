@@ -34,8 +34,9 @@
     "test:migration:run": "cross-env TYPEORM_NAME=test ts-node ./src/bin/migrator.ts migrate",
     "autosetup": "yarn install && yarn automigrate",
     "automigrate": "md5sum -c .migrations.${TYPEORM_NAME:-dev}.md5 2>/dev/null || yarn migration:run && md5sum src/bin/migrator.ts src/migration/* > .migrations.${TYPEORM_NAME:-dev}.md5",
-    "addclnode": "ts-node src/bin/clnodes.ts add",
     "admin:seed": "ts-node src/bin/admin.ts seed",
+    "admin:clnodes:add": "ts-node src/bin/clnodes.ts add",
+    "admin:clnodes:delete": "ts-node src/bin/clnodes.ts delete",
     "depcheck": "echo \"@chainlink/explorer\" && depcheck --ignore-dirs=client || exit 0"
   },
   "main": "src/index.ts",
@@ -49,6 +50,7 @@
     "@types/mime-types": "^2.1.0",
     "@types/uuid": "^3.4.4",
     "bcrypt": "^3.0.6",
+    "class-validator": "^0.10.0",
     "express": "^4.16.4",
     "express-winston": "^3.1.0",
     "helmet": "^3.20.0",

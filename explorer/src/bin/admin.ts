@@ -1,32 +1,8 @@
 import yargs from 'yargs'
-import { Connection } from 'typeorm'
-import { Admin } from '../entity/admin'
-import { createAdmin } from '../support/admin'
-import { closeDbConnection, getDb } from '../database'
+import { seed } from '../cli/admin'
 
-const seed = async (username: string, password: string) => {
-  return bootstrap(async (db: Connection) => {
-    const admin: Admin = await createAdmin(db, username, password)
-
-    console.log('created new chainlink admin')
-    console.log('username: ', admin.username)
-    console.log('password: ', password)
-  })
-}
-
-const bootstrap = async (cb: any) => {
-  const db = await getDb()
-  try {
-    await cb(db)
-  } catch (e) {
-    console.error(e)
-  }
-  try {
-    await closeDbConnection()
-  } catch (e) {}
-}
-
-const _ = yargs
+/* eslint-disable-next-line no-unused-expressions */
+yargs
   .usage('Usage: $0 <command> [options]')
   .command({
     command: 'seed <username> <password>',

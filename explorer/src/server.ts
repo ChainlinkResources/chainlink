@@ -7,6 +7,8 @@ import { addRequestLogging, logger } from './logging'
 import { bootstrapRealtime } from './realtime'
 import seed from './seed'
 
+const ADMIN_CONTROLLERS = [controllers.adminLogin, controllers.adminNodes]
+
 export const DEFAULT_PORT = parseInt(process.env.SERVER_PORT, 10) || 8080
 
 const server = (port: number = DEFAULT_PORT) => {
@@ -29,8 +31,10 @@ const server = (port: number = DEFAULT_PORT) => {
       },
     }),
   )
+
   app.use('/api/v1', controllers.jobRuns)
-  app.use('/api/v1/admin', controllers.adminLogin)
+
+  ADMIN_CONTROLLERS.forEach(c => app.use('/api/v1/admin', c))
 
   app.get('/*', (_, res) => {
     res.sendFile(`${__dirname}/public/index.html`)

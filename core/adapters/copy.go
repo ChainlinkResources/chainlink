@@ -17,8 +17,7 @@ func (c *Copy) Perform(input models.RunResult, store *store.Store) models.RunRes
 
 	data, err := input.Data.Add("result", input.Data.String())
 	if err != nil {
-		input.SetError(err)
-		return input
+		return models.RunResultError(err)
 	}
 	input.Data = data
 

@@ -31,8 +31,7 @@ func (ba *Bridge) Perform(input models.RunResult, store *store.Store) models.Run
 	} else if input.Status.PendingBridge() {
 		return resumeBridge(input)
 	}
-	ba.handleNewRun(&input, store.Config.BridgeResponseURL())
-	return input
+	return ba.handleNewRun(input, store.Config.BridgeResponseURL())
 }
 
 func resumeBridge(input models.RunResult) models.RunResult {
@@ -40,50 +39,74 @@ func resumeBridge(input models.RunResult) models.RunResult {
 	return input
 }
 
-func (ba *Bridge) handleNewRun(input *models.RunResult, bridgeResponseURL *url.URL) {
+func (ba *Bridge) handleNewRun(input models.RunResult, bridgeResponseURL *url.URL) models.RunResult {
 	if ba.Params == nil {
 		ba.Params = new(models.JSON)
 	}
 	var err error
 	if input.Data, err = input.Data.Merge(*ba.Params); err != nil {
-		input.SetError(baRunResultError("handling data param", err))
-		return
+		var output models.RunResult
+		output.Data = input.Data
+		output.SetError(baRunResultError("handling data param", err))
+		return output
 	}
 
 	responseURL := bridgeResponseURL
 	if *responseURL != *zeroURL {
 		responseURL.Path += fmt.Sprintf("/v2/runs/%s", input.CachedJobRunID)
 	}
+
 	body, err := ba.postToExternalAdapter(input, responseURL)
 	if err != nil {
-		input.SetError(baRunResultError("post to external adapter", err))
-		return
+		var output models.RunResult
+		output.Data = input.Data
+		output.SetError(baRunResultError("post to external adapter", err))
+		return output
 	}
 
-	err = responseToRunResult(body, input)
-	if err != nil {
-		input.SetError(err)
-		return
-	}
+	return responseToRunResult(body, input)
 }
 
-func responseToRunResult(body []byte, input *models.RunResult) error {
+func responseToRunResult(body []byte, input models.RunResult) models.RunResult {
+	var output models.RunResult
+
 	var brr models.BridgeRunResult
 	err := json.Unmarshal(body, &brr)
 	if err != nil {
-		return baRunResultError("unmarshaling JSON", err)
+		output.Data = input.Data
+		output.SetError(baRunResultError("unmarshaling JSON", err))
+		return output
+	}
+
+	// Special case where the error comes to us via the JSON payload itself, rather than as a Go error.
+	if brr.HasError() {
+		err = output.Merge(brr.RunResult)
+		if err != nil {
+			output.SetError(err)
+			return output
+		}
+
+		output.ApplyResult(brr.RunResult.Data.String())
+		output.Status = models.RunStatusErrored
+		return output
 	}
 
 	if brr.RunResult.Data.Exists() && !brr.RunResult.Data.IsObject() {
-		input.CompleteWithResult(brr.RunResult.Data.String())
+		output.CompleteWithResult(brr.RunResult.Data.String())
 	}
 
-	return input.Merge(brr.RunResult)
+	err = output.Merge(brr.RunResult)
+	if err != nil {
+		output.Data = input.Data
+		output.SetError(err)
+	}
+
+	return output
 }
 
-func (ba *Bridge) postToExternalAdapter(input *models.RunResult, bridgeResponseURL *url.URL) ([]byte, error) {
+func (ba *Bridge) postToExternalAdapter(input models.RunResult, bridgeResponseURL *url.URL) ([]byte, error) {
 	in, err := json.Marshal(&bridgeOutgoing{
-		RunResult:   *input,
+		RunResult:   input,
 		ResponseURL: bridgeResponseURL,
 	})
 	if err != nil {
